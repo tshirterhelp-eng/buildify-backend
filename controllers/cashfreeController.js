@@ -9,12 +9,8 @@ exports.createOrder = async (req, res) => {
       "BUILDIFY_" + Date.now();
 
     const request = {
-
       order_amount: 2500,
-
       order_currency: "INR",
-
-      order_id: orderId,
 
       customer_details: {
         customer_id: req.user.id,
@@ -27,7 +23,6 @@ exports.createOrder = async (req, res) => {
         return_url:
           "https://buildify-backend-60bl.onrender.com/payment-success?order_id={order_id}",
       },
-
     };
 
     const response =
@@ -44,7 +39,9 @@ exports.createOrder = async (req, res) => {
 
   } catch (error) {
 
-    console.log(error.response?.data || error);
+    console.log(
+      error.response?.data || error
+    );
 
     res.status(500).json({
       error: error.message,
