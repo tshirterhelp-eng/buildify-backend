@@ -5,19 +5,28 @@ exports.createOrder = async (req, res) => {
 
   try {
 
-    const options = {
+   const paymentLink =
+  await razorpay.paymentLink.create({
 
-      amount: 2500 * 100,
+    amount: 2500 * 100,
 
-      currency: "INR",
+    currency: "INR",
 
-      receipt: `receipt_${Date.now()}`
+    description:
+      "Buildify Contact Unlock",
 
-    };
+    callback_method: "get",
 
-    const order = await razorpay.orders.create(options);
+    notify: {
+      sms: true,
+      email: true,
+    }
 
-    res.status(200).json(order);
+  });
+
+res.status(200).json({
+  paymentUrl: paymentLink.short_url,
+});
 
   } catch (error) {
 
