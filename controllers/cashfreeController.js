@@ -1,5 +1,5 @@
 const cashfree = require("../config/cashfree");
-
+const Payment = require("../models/Payment");
 exports.createOrder = async (req, res) => {
   try {
 
@@ -28,7 +28,7 @@ exports.createOrder = async (req, res) => {
       );
 
     console.log(response.data);
-const Payment = require("../models/Payment");
+
 
 await Payment.create({
   engineerId: req.user.id,
