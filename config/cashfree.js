@@ -1,13 +1,9 @@
-const { Cashfree, CFEnvironment } =
-  require("cashfree-pg");
+const { Cashfree } = require("cashfree-pg");
 
-Cashfree.XClientId =
-  process.env.CASHFREE_CLIENT_ID;
+const cashfree = new Cashfree(
+  Cashfree.SANDBOX,
+  process.env.CASHFREE_CLIENT_ID,
+  process.env.CASHFREE_CLIENT_SECRET
+);
 
-Cashfree.XClientSecret =
-  process.env.CASHFREE_CLIENT_SECRET;
-
-Cashfree.XEnvironment =
-  CFEnvironment.SANDBOX;
-
-module.exports = Cashfree;
+module.exports = cashfree;
