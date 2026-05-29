@@ -7,9 +7,8 @@ const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
 
 const {
-  createOrder,
-  verifyPayment
-} = require("../controllers/paymentController");
+  createOrder
+} = require("../controllers/cashfreeController");
 
 router.post(
   "/create-order",
