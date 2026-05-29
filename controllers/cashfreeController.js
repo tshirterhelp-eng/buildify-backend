@@ -1,9 +1,7 @@
-const Cashfree = require("../config/cashfree");
+const cashfree = require("../config/cashfree");
 
 exports.createOrder = async (req, res) => {
   try {
-
-    const { projectId } = req.body;
 
     const orderId =
       "BUILDIFY_" + Date.now();
@@ -11,30 +9,31 @@ exports.createOrder = async (req, res) => {
     const request = {
       order_amount: 2500,
       order_currency: "INR",
+      order_id: orderId,
 
       customer_details: {
         customer_id: req.user.id,
-        customer_name: "Engineer",
-        customer_email: "engineer@buildify.com",
-        customer_phone: "9999999999",
+        customer_phone: "9999999999"
       },
 
       order_meta: {
         return_url:
-          "https://buildify-backend-60bl.onrender.com/payment-success?order_id={order_id}",
-      },
+          "https://buildify-backend-60bl.onrender.com/payment-success?order_id={order_id}"
+      }
     };
 
     const response =
-      await Cashfree.PGCreateOrder(
-        "2023-08-01",
+      await cashfree.PGCreateOrder(
         request
       );
 
+    console.log(response.data);
+
     res.status(200).json({
+      success: true,
       paymentSessionId:
         response.data.payment_session_id,
-      orderId,
+      orderId
     });
 
   } catch (error) {
@@ -44,7 +43,8 @@ exports.createOrder = async (req, res) => {
     );
 
     res.status(500).json({
-      error: error.message,
+      success: false,
+      error: error.message
     });
 
   }
