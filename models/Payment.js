@@ -4,24 +4,27 @@ const paymentSchema = new mongoose.Schema({
 
   engineerId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User"
+    ref: "User",
+    required: true
   },
 
   projectId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Project"
+    ref: "Project",
+    required: true
   },
 
-  razorpayOrderId: {
+  cashfreeOrderId: {
     type: String
   },
 
-  razorpayPaymentId: {
+  cashfreePaymentId: {
     type: String
   },
 
   status: {
     type: String,
+    enum: ["pending", "completed", "failed"],
     default: "pending"
   },
 
