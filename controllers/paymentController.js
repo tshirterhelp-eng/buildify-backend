@@ -1,93 +1,58 @@
-const razorpay = require("../config/razorpay");
 const Payment = require("../models/Payment");
 const Project = require("../models/Project");
-exports.createOrder = async (req, res) => {
 
+exports.cashfreeWebhook = async (req, res) => {
   try {
 
-   const paymentLink =
-  await razorpay.paymentLink.create({
+    console.log("WEBHOOK:", req.body);
 
-    amount: 2500 * 100,
+    const data = req.body.data;
 
-    currency: "INR",
+    if (
+      data &&
+      data.payment &&
+      data.payment.payment_status === "SUCCESS"
+    ) {
 
-    description:
-      "Buildify Contact Unlock",
+      const orderId =
+        data.order.order_id;
 
-    callback_method: "get",
+      const paymentId =
+        data.payment.cf_payment_id;
 
-    notify: {
-      sms: true,
-      email: true,
+      // Find pending payment
+      const payment =
+        await Payment.findOne({
+          cashfreeOrderId: orderId,
+        });
+
+      if (payment) {
+
+        payment.status = "completed";
+
+        payment.cashfreePaymentId =
+          paymentId;
+
+        await payment.save();
+
+        await Project.findByIdAndUpdate(
+          payment.projectId,
+          {
+            $addToSet: {
+              unlockedBy:
+                payment.engineerId,
+            },
+          }
+        );
+      }
     }
 
-  });
+    res.status(200).send("OK");
 
-res.status(200).json({
-  paymentUrl: paymentLink.short_url,
-});
+  } catch (err) {
 
-  } catch (error) {
+    console.log(err);
 
-    res.status(500).json({
-      error: error.message
-    });
-
+    res.status(500).send("Error");
   }
-
-};
-
-exports.verifyPayment = async (req, res) => {
-
-  try {
-
-    const {
-      razorpayOrderId,
-      razorpayPaymentId,
-      projectId
-    } = req.body;
-
-    const payment = await Payment.create({
-
-      engineerId: req.user.id,
-
-      projectId,
-
-      razorpayOrderId,
-
-      razorpayPaymentId,
-
-      status: "completed"
-
-    });
-
-    await Project.findByIdAndUpdate(
-
-      projectId,
-
-      {
-        $push: {
-          unlockedBy: req.user.id
-        }
-      }
-
-    );
-
-    res.status(200).json({
-
-      message: "Payment verified and contact unlocked",
-
-      payment
-
-    });
-
-  } catch (error) {
-
-    res.status(500).json({
-      error: error.message
-    });
-
-  }
-
 };
