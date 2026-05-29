@@ -3,11 +3,10 @@ const express = require("express");
 const router = express.Router();
 
 const authMiddleware = require("../middleware/authMiddleware");
-
 const roleMiddleware = require("../middleware/roleMiddleware");
 
 const {
-  createOrder
+  createOrder,
 } = require("../controllers/cashfreeController");
 
 router.post(
@@ -16,10 +15,5 @@ router.post(
   roleMiddleware("engineer"),
   createOrder
 );
-router.post(
-  "/verify",
-  authMiddleware,
-  roleMiddleware("engineer"),
-  verifyPayment
-);
+
 module.exports = router;
