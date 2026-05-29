@@ -28,7 +28,15 @@ exports.createOrder = async (req, res) => {
       );
 
     console.log(response.data);
+const Payment = require("../models/Payment");
 
+await Payment.create({
+  engineerId: req.user.id,
+  projectId: req.body.projectId,
+  cashfreeOrderId: orderId,
+  amount: 2500,
+  status: "pending"
+});
     res.status(200).json({
       success: true,
       paymentSessionId:
