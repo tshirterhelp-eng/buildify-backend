@@ -4,31 +4,15 @@ const jwt = require("jsonwebtoken");
 
 exports.register = async (req, res) => {
   try {
-  const user = await User.create({
-    name,
-    email,
-    phone,
-    password: hashedPassword,
-    role,
-  });
+    const {
+      name,
+      email,
+      phone,
+      password,
+      role
+    } = req.body;
 
-  console.log("USER CREATED:", user);
-
-  res.status(201).json({
-    success: true,
-    user,
-  });
-
-} catch (error) {
-  console.error("REGISTER ERROR:", error);
-
-  res.status(500).json({
-    success: false,
-    message: error.message,
-  });
-}
-
-    const { name, email, password, role } = req.body;
+    console.log("REGISTER REQUEST:", req.body);
 
     const existingUser = await User.findOne({ email });
 
@@ -39,7 +23,7 @@ exports.register = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    console.log(req.body);
+
     const user = await User.create({
       name,
       email,
@@ -48,20 +32,30 @@ exports.register = async (req, res) => {
       role
     });
 
+    console.log("USER CREATED:", user);
+
     res.status(201).json({
-     message: "User registered successfully",
-    user: {
-    id: user._id,
-    name: user.name,
-    email: user.email,
-    role: user.role
-    }
-   });
+      message: "User registered successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role
+      }
+    });
 
   } catch (error) {
-    res.status(500).json({ error: error.message });
+
+    console.error("REGISTER ERROR:", error);
+
+    res.status(500).json({
+      error: error.message
+    });
+
   }
 };
+
 exports.login = async (req, res) => {
   try {
 
@@ -75,7 +69,10 @@ exports.login = async (req, res) => {
       });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await bcrypt.compare(
+      password,
+      user.password
+    );
 
     if (!isMatch) {
       return res.status(400).json({
@@ -101,13 +98,18 @@ exports.login = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
         role: user.role
       }
     });
 
   } catch (error) {
+
+    console.error("LOGIN ERROR:", error);
+
     res.status(500).json({
       error: error.message
     });
+
   }
 };
