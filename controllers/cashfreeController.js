@@ -1,5 +1,6 @@
 const cashfree = require("../config/cashfree");
 const Payment = require("../models/Payment");
+
 exports.createOrder = async (req, res) => {
   try {
 
@@ -23,20 +24,16 @@ exports.createOrder = async (req, res) => {
     };
 
     const response =
-      await cashfree.PGCreateOrder(
-        request
-      );
+      await cashfree.PGCreateOrder(request);
 
-    console.log(response.data);
+    await Payment.create({
+      engineerId: req.user.id,
+      projectId: req.body.projectId,
+      cashfreeOrderId: orderId,
+      amount: 2500,
+      status: "pending"
+    });
 
-
-await Payment.create({
-  engineerId: req.user.id,
-  projectId: req.body.projectId,
-  cashfreeOrderId: orderId,
-  amount: 2500,
-  status: "pending"
-});
     res.status(200).json({
       success: true,
       paymentSessionId:
