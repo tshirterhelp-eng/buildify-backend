@@ -31,6 +31,10 @@ exports.createOrder = async (req, res) => {
 
     const response =
       await cashfree.PGCreateOrder(request);
+      console.log(
+  "CASHFREE RESPONSE:",
+  JSON.stringify(response.data, null, 2)
+);
 
     await Payment.create({
       engineerId: req.user.id,
