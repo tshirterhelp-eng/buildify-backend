@@ -1,13 +1,14 @@
 const cashfree = require("../config/cashfree");
 const Payment = require("../models/Payment");
-if (!req.body.projectId) {
+
+exports.createOrder = async (req, res) => {
+   try {
+     if (!req.body.projectId) {
   return res.status(400).json({
     success: false,
     message: "Project ID is required"
   });
 }
-exports.createOrder = async (req, res) => {
-  try {
 
     const orderId =
       "BUILDIFY_" + Date.now();
