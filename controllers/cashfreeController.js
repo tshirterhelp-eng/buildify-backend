@@ -45,11 +45,13 @@ exports.createOrder = async (req, res) => {
     });
 
     res.status(200).json({
-      success: true,
-      paymentSessionId:
-        response.data.payment_session_id,
-      orderId
-    });
+  success: true,
+  paymentSessionId:
+    response.data.payment_session_id,
+  orderId,
+  checkoutUrl:
+    "https://buildify-backend-60bl.onrender.com/checkout.html"
+});
 
   } catch (error) {
 
