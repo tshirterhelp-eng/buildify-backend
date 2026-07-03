@@ -1,143 +1,130 @@
 const Project = require("../models/Project");
+const asyncHandler = require("../middleware/asyncHandler");
 
-exports.createProject = async (req, res) => {
+exports.createProject = asyncHandler(async (req, res) => {
 
-  try {
+  const {
+    title,
+    description,
+    budget,
+    location,
+    projectType,
+    phone,
+    email
+  } = req.body;
 
-    const {
-      title,
-      description,
-      budget,
-      location,
-      projectType,
+  const project = await Project.create({
+
+    title,
+    description,
+    budget,
+    location,
+    projectType,
+
+    customerContact: {
       phone,
       email
-    } = req.body;
+    },
 
-    const project = await Project.create({
+    customerId: req.user.id.toString()
 
-      title,
-      description,
-      budget,
-      location,
-      projectType,
+  });
 
-      customerContact: {
-        phone,
-        email
-      },
+  res.status(201).json({
+    message: "Project created successfully",
+    project
+  });
 
-      customerId: req.user.id.toString()
+});
 
-    });
+exports.getProjects = asyncHandler(async (req, res) => {
 
-    res.status(201).json({
-      message: "Project created successfully",
-      project
-    });
+  const page = Math.max(parseInt(req.query.page) || 1, 1);
+  const limit = Math.min(parseInt(req.query.limit) || 20, 50);
 
-  } catch (error) {
+  // Engineers browse only open (biddable) projects; contact details and
+  // the unlock list are never exposed here — only via the paid unlock route.
+  const filter = { status: "open" };
 
-    res.status(500).json({
-      error: error.message
-    });
+  if (req.query.projectType) filter.projectType = req.query.projectType;
+  if (req.query.location) filter.location = new RegExp(req.query.location, "i");
+  if (req.query.q) filter.title = new RegExp(req.query.q, "i");
 
-  }
+  const [projects, totalCount] = await Promise.all([
+    Project.find(filter)
+      .select("-customerContact -unlockedBy")
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean(),
+    Project.countDocuments(filter),
+  ]);
 
-};
+  res.status(200).json({
+    projects,
+    page,
+    totalPages: Math.ceil(totalCount / limit) || 1,
+    totalCount,
+  });
 
-exports.getProjects = async (req, res) => {
+});
 
-  try {
-
-    const projects = await Project.find()
-      .sort({ createdAt: -1 });
-
-    res.status(200).json(projects);
-
-  } catch (error) {
-
-    res.status(500).json({
-      error: error.message
-    });
-
-  }
-
-};
-exports.getMyProjects = async (
+exports.getMyProjects = asyncHandler(async (
   req,
   res
 ) => {
 
-  try {
+  const page = Math.max(parseInt(req.query.page) || 1, 1);
+  const limit = Math.min(parseInt(req.query.limit) || 20, 50);
 
-    console.log("REQ USER:");
-    console.log(req.user);
+  const filter = { customerId: req.user.id.toString() };
 
-    const projects =
-      await Project.find({
+  const [projects, totalCount] = await Promise.all([
+    Project.find(filter)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean(),
+    Project.countDocuments(filter),
+  ]);
 
-        customerId: req.user.id.toString()
+  res.status(200).json({
+    projects,
+    page,
+    totalPages: Math.ceil(totalCount / limit) || 1,
+    totalCount,
+  });
 
-      }).sort({
-        createdAt: -1
-      });
+});
 
-    console.log("PROJECTS:");
-    console.log(projects);
+exports.getProjectContact = asyncHandler(async (req, res) => {
 
-    res.status(200).json(projects);
+  const { projectId } = req.params;
 
-  } catch (error) {
+  const project = await Project.findById(projectId);
 
-    console.log(error);
+  if (!project) {
 
-    res.status(500).json({
-      error: error.message,
+    return res.status(404).json({
+      message: "Project not found"
     });
 
   }
 
-};
+  const isUnlocked = project.unlockedBy.includes(req.user.id);
 
-exports.getProjectContact = async (req, res) => {
+  if (!isUnlocked) {
 
-  try {
-
-    const { projectId } = req.params;
-
-    const project = await Project.findById(projectId);
-
-    if (!project) {
-
-      return res.status(404).json({
-        message: "Project not found"
-      });
-
-    }
-
-    const isUnlocked = project.unlockedBy.includes(req.user.id);
-
-    if (!isUnlocked) {
-
-      return res.status(403).json({
-        message: "You must pay ₹2500 to access contact details"
-      });
-
-    }
-
-    res.status(200).json({
-
-      customerContact: project.customerContact
-
-    });
-
-  } catch (error) {
-
-    res.status(500).json({
-      error: error.message
+    return res.status(403).json({
+      message: "You must pay ₹2500 to access contact details"
     });
 
   }
 
-};
+  res.status(200).json({
+
+    customerContact: project.customerContact
+
+  });
+
+});

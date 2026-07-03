@@ -14,6 +14,12 @@ const paymentSchema = new mongoose.Schema({
     required: true
   },
 
+  bidId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Bid",
+    required: true
+  },
+
   cashfreeOrderId: {
     type: String
   },
@@ -39,5 +45,8 @@ const paymentSchema = new mongoose.Schema({
   }
 
 });
+
+paymentSchema.index({ cashfreeOrderId: 1 });
+paymentSchema.index({ projectId: 1 });
 
 module.exports = mongoose.model("Payment", paymentSchema);

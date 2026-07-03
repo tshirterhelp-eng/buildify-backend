@@ -32,6 +32,12 @@ const projectSchema = new mongoose.Schema({
     ref: "User"
   },
 
+  assignedEngineerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    default: null
+  },
+
   contactUnlocked: {
     type: Boolean,
     default: false
@@ -60,5 +66,10 @@ const projectSchema = new mongoose.Schema({
   }
 
 });
+
+projectSchema.index({ customerId: 1 });
+projectSchema.index({ status: 1 });
+projectSchema.index({ createdAt: -1 });
+projectSchema.index({ projectType: 1 });
 
 module.exports = mongoose.model("Project", projectSchema);

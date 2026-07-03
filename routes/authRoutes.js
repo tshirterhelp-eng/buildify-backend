@@ -4,11 +4,13 @@ const router = express.Router();
 const roleMiddleware = require("../middleware/roleMiddleware");
 const {
   register,
-  login
+  login,
+  googleLogin
 } = require("../controllers/authController");
 
 router.post("/register", register);
 router.post("/login", login);
+router.post("/google-login", googleLogin);
 router.get("/profile", authMiddleware, (req, res) => {
 
   res.json({

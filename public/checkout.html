@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Buildify Checkout</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
+</head>
+<body>
+    <h1>Buildify Payment</h1>
+    <p id="status">Loading secure checkout&hellip;</p>
+
+    <script>
+      (function () {
+        var params = new URLSearchParams(window.location.search);
+        var sessionId = params.get("session_id");
+        var statusEl = document.getElementById("status");
+
+        if (!sessionId) {
+          statusEl.textContent = "Missing payment session. Please try again from the app.";
+          return;
+        }
+
+        try {
+          var cashfree = Cashfree({ mode: "sandbox" });
+          cashfree.checkout({
+            paymentSessionId: sessionId,
+            redirectTarget: "_self",
+          });
+        } catch (e) {
+          statusEl.textContent = "Unable to start checkout: " + e.message;
+        }
+      })();
+    </script>
+</body>
+</html>
