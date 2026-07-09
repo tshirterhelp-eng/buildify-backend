@@ -12,7 +12,7 @@ const app = express();
 
 app.use(cors());
 
-// Capture the raw request body so the Cashfree webhook handler can verify
+// Capture the raw request body so the Razorpay webhook handler can verify
 // the HMAC signature over the exact bytes that were sent (re-serialized
 // JSON can differ in key order/whitespace and would break verification).
 app.use(

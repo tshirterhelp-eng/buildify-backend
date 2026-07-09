@@ -1,4 +1,5 @@
 const Project = require("../models/Project");
+const Payment = require("../models/Payment");
 const asyncHandler = require("../middleware/asyncHandler");
 
 exports.createProject = asyncHandler(async (req, res) => {
@@ -111,9 +112,18 @@ exports.getProjectContact = asyncHandler(async (req, res) => {
 
   }
 
-  const isUnlocked = project.unlockedBy.includes(req.user.id);
+  // Contact is unlocked ONLY when a completed payment exists for this
+  // engineer + project. We intentionally check the Payment record (the
+  // authoritative source) rather than project.unlockedBy — the latter is
+  // an ObjectId array that never matches the JWT's string id via
+  // Array.includes(), and accepting a bid must NOT unlock contact on its own.
+  const paid = await Payment.exists({
+    projectId,
+    engineerId: req.user.id,
+    status: "completed",
+  });
 
-  if (!isUnlocked) {
+  if (!paid) {
 
     return res.status(403).json({
       message: "You must pay ₹2500 to access contact details"
