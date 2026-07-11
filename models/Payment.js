@@ -20,11 +20,11 @@ const paymentSchema = new mongoose.Schema({
     required: true
   },
 
-  razorpayOrderId: {
+  cashfreeOrderId: {
     type: String
   },
 
-  razorpayPaymentId: {
+  cashfreePaymentId: {
     type: String
   },
 
@@ -46,7 +46,7 @@ const paymentSchema = new mongoose.Schema({
 
 });
 
-paymentSchema.index({ razorpayOrderId: 1 });
+paymentSchema.index({ cashfreeOrderId: 1 });
 paymentSchema.index({ projectId: 1 });
 
 module.exports = mongoose.model("Payment", paymentSchema);
