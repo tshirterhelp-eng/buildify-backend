@@ -20,11 +20,11 @@ const paymentSchema = new mongoose.Schema({
     required: true
   },
 
-  razorpayOrderId: {
+  cashfreeOrderId: {
     type: String
   },
 
-  razorpayPaymentId: {
+  cashfreePaymentId: {
     type: String
   },
 

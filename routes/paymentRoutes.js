@@ -7,15 +7,14 @@ const roleMiddleware = require("../middleware/roleMiddleware");
 
 const {
   createOrder,
-} = require("../controllers/razorpayController");
+} = require("../controllers/cashfreeController");
 
 const {
-  verifyPayment,
-  razorpayWebhook,
+  cashfreeWebhook,
   getMyUnlockedProjects,
 } = require("../controllers/paymentController");
 
-// Engineer creates a Razorpay order (only for a project where their bid was accepted)
+// Engineer creates a Cashfree order (only for a project where their bid was accepted)
 router.post(
   "/create-order",
   authMiddleware,
@@ -23,11 +22,8 @@ router.post(
   createOrder
 );
 
-// Hosted checkout success callback (verified by Razorpay signature, no JWT needed)
-router.post("/verify", verifyPayment);
-
-// Razorpay server-to-server webhook (verified by HMAC signature)
-router.post("/webhook", razorpayWebhook);
+// Cashfree server-to-server webhook (verified by HMAC signature)
+router.post("/webhook", cashfreeWebhook);
 
 // Engineer's own unlocked (paid-for) projects
 router.get(

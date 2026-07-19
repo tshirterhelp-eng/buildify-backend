@@ -3,7 +3,7 @@
 <head>
     <title>Buildify Checkout</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
     <style>
       body {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -30,48 +30,21 @@
     <script>
       (function () {
         var params = new URLSearchParams(window.location.search);
-        var orderId = params.get("order_id");
-        var amount = params.get("amount");
-        var key = params.get("key");
+        var sessionId = params.get("session_id");
+        var mode = params.get("mode") === "sandbox" ? "sandbox" : "production";
         var statusEl = document.getElementById("status");
 
-        function returnToApp() {
-          window.location = "buildify://payment-success?order_id=" + orderId;
-        }
-
-        if (!orderId || !key) {
-          statusEl.textContent = "Missing payment details. Please try again from the app.";
+        if (!sessionId) {
+          statusEl.textContent = "Missing payment session. Please try again from the app.";
           return;
         }
 
-        var options = {
-          key: key,
-          order_id: orderId,
-          amount: amount,
-          currency: "INR",
-          name: "Buildify",
-          description: "Unlock customer contact",
-          theme: { color: "#1DBF73" },
-          handler: function (response) {
-            statusEl.textContent = "Confirming payment…";
-            fetch("/api/payments/verify", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(response),
-            })
-              .then(function () { returnToApp(); })
-              .catch(function () { returnToApp(); });
-          },
-          modal: {
-            ondismiss: function () {
-              statusEl.textContent = "Payment cancelled. You can close this page.";
-            },
-          },
-        };
-
         try {
-          var rzp = new Razorpay(options);
-          rzp.open();
+          var cashfree = Cashfree({ mode: mode });
+          cashfree.checkout({
+            paymentSessionId: sessionId,
+            redirectTarget: "_self",
+          });
         } catch (e) {
           statusEl.textContent = "Unable to start checkout: " + e.message;
         }
