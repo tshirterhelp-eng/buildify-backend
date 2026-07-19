@@ -10,6 +10,7 @@ const {
   createProject,
   getProjects,
    getMyProjects,
+  getProjectImages,
   getProjectContact
 } = require("../controllers/projectController");
 
@@ -34,6 +35,11 @@ router.get(
 
   getMyProjects
 
+);
+router.get(
+  "/images/:projectId",
+  authMiddleware,
+  getProjectImages
 );
 router.get(
   "/contact/:projectId",

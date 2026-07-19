@@ -11,8 +11,21 @@ exports.createProject = asyncHandler(async (req, res) => {
     location,
     projectType,
     phone,
-    email
+    email,
+    images
   } = req.body;
+
+  if (!Array.isArray(images) || images.length < 1) {
+    return res.status(400).json({
+      message: "At least one land image is required"
+    });
+  }
+
+  if (images.length > 5) {
+    return res.status(400).json({
+      message: "You can upload at most 5 land images"
+    });
+  }
 
   const project = await Project.create({
 
@@ -21,6 +34,7 @@ exports.createProject = asyncHandler(async (req, res) => {
     budget,
     location,
     projectType,
+    images,
 
     customerContact: {
       phone,
@@ -53,7 +67,9 @@ exports.getProjects = asyncHandler(async (req, res) => {
 
   const [projects, totalCount] = await Promise.all([
     Project.find(filter)
-      .select("-customerContact -unlockedBy")
+      // images are base64 blobs — excluded here so browse stays fast;
+      // fetched per-project via GET /api/projects/:projectId/images
+      .select("-customerContact -unlockedBy -images")
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -82,6 +98,7 @@ exports.getMyProjects = asyncHandler(async (
 
   const [projects, totalCount] = await Promise.all([
     Project.find(filter)
+      .select("-images")
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -95,6 +112,23 @@ exports.getMyProjects = asyncHandler(async (
     totalPages: Math.ceil(totalCount / limit) || 1,
     totalCount,
   });
+
+});
+
+// Land images for one project. Kept out of the list endpoints because the
+// base64 payloads are large; any authenticated user may view them (they're
+// not sensitive — unlike customerContact).
+exports.getProjectImages = asyncHandler(async (req, res) => {
+
+  const { projectId } = req.params;
+
+  const project = await Project.findById(projectId).select("images").lean();
+
+  if (!project) {
+    return res.status(404).json({ message: "Project not found" });
+  }
+
+  res.status(200).json({ images: project.images || [] });
 
 });
 

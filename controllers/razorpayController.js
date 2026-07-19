@@ -1,4 +1,4 @@
-const cashfree = require("../config/cashfree");
+const razorpay = require("../config/razorpay");
 const Payment = require("../models/Payment");
 const Project = require("../models/Project");
 const Bid = require("../models/Bid");
@@ -6,7 +6,7 @@ const asyncHandler = require("../middleware/asyncHandler");
 
 const UNLOCK_AMOUNT_RUPEES = 2500;
 
-// Engineer creates a Cashfree order to unlock contact details.
+// Engineer creates a Razorpay order to unlock contact details.
 // Only allowed for the engineer whose bid was accepted on this project.
 exports.createOrder = asyncHandler(async (req, res) => {
 
@@ -57,53 +57,50 @@ exports.createOrder = asyncHandler(async (req, res) => {
     status: "pending",
   });
 
-  if (existingPending) {
-    return res.status(409).json({
-      success: false,
-      message: "A payment is already pending for this project",
-      orderId: existingPending.cashfreeOrderId,
+  // Reuse a still-open order instead of creating duplicates.
+  if (existingPending && existingPending.razorpayOrderId) {
+    return res.status(200).json({
+      success: true,
+      orderId: existingPending.razorpayOrderId,
+      amount: UNLOCK_AMOUNT_RUPEES * 100,
+      keyId: process.env.RAZORPAY_KEY_ID,
+      checkoutUrl:
+        `${req.protocol}://${req.get("host")}/checkout.html` +
+        `?order_id=${existingPending.razorpayOrderId}` +
+        `&amount=${UNLOCK_AMOUNT_RUPEES * 100}` +
+        `&key=${process.env.RAZORPAY_KEY_ID}`,
     });
   }
 
-  const orderId = "BUILDIFY_" + Date.now();
-
-  const request = {
-    order_amount: UNLOCK_AMOUNT_RUPEES,
-    order_currency: "INR",
-    order_id: orderId,
-
-    customer_details: {
-      customer_id: req.user.id,
-      customer_phone: "9999999999",
+  const order = await razorpay.orders.create({
+    amount: UNLOCK_AMOUNT_RUPEES * 100, // Razorpay expects paise
+    currency: "INR",
+    receipt: "BUILDIFY_" + Date.now(),
+    notes: {
+      projectId: String(projectId),
+      engineerId: String(req.user.id),
     },
-
-    order_meta: {
-      // Custom app URL scheme (registered in AndroidManifest.xml / iOS
-      // Info.plist) so Cashfree's hosted checkout returns straight into the app.
-      return_url: "buildify://payment-success?order_id={order_id}",
-    },
-  };
-
-  const response = await cashfree.PGCreateOrder(request);
+  });
 
   await Payment.create({
     engineerId: req.user.id,
     projectId,
     bidId: acceptedBid._id,
-    cashfreeOrderId: orderId,
+    razorpayOrderId: order.id,
     amount: UNLOCK_AMOUNT_RUPEES,
     status: "pending",
   });
 
-  const mode = cashfree.isSandbox ? "sandbox" : "production";
-
   res.status(200).json({
     success: true,
-    paymentSessionId: response.data.payment_session_id,
-    orderId,
+    orderId: order.id,
+    amount: order.amount,
+    keyId: process.env.RAZORPAY_KEY_ID,
     checkoutUrl:
       `${req.protocol}://${req.get("host")}/checkout.html` +
-      `?session_id=${response.data.payment_session_id}&mode=${mode}`,
+      `?order_id=${order.id}` +
+      `&amount=${order.amount}` +
+      `&key=${process.env.RAZORPAY_KEY_ID}`,
   });
 
 });

@@ -27,6 +27,17 @@ const projectSchema = new mongoose.Schema({
     required: true
   },
 
+  // Land photos, stored as base64 data URIs. Required: 1-5 per project.
+  // Excluded from list queries (see projectController) to keep responses small.
+  images: {
+    type: [String],
+    required: true,
+    validate: {
+      validator: (v) => Array.isArray(v) && v.length >= 1 && v.length <= 5,
+      message: "A project needs between 1 and 5 land images",
+    },
+  },
+
   customerId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User"
