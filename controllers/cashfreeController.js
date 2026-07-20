@@ -84,7 +84,29 @@ exports.createOrder = asyncHandler(async (req, res) => {
     },
   };
 
-  const response = await cashfree.PGCreateOrder(request);
+  let response;
+  try {
+    response = await cashfree.PGCreateOrder(request);
+  } catch (err) {
+    // The raw Cashfree/axios error includes the request headers (with the
+    // secret key) and a huge socket object — never log that. Log only the
+    // status + Cashfree's own message.
+    const status = err.response && err.response.status;
+    const cfMessage =
+      (err.response && err.response.data && err.response.data.message) ||
+      err.message;
+    console.error(
+      `Cashfree order failed (${cashfree.isSandbox ? "sandbox" : "production"} mode): ` +
+      `${status || ""} ${cfMessage}`
+    );
+
+    const hint =
+      status === 401
+        ? "Payment gateway rejected the credentials. Check that CASHFREE_ENV matches your key type (test vs production) and that the keys are correct."
+        : "Could not start the payment. Please try again.";
+
+    return res.status(502).json({ success: false, message: hint });
+  }
 
   await Payment.create({
     engineerId: req.user.id,
