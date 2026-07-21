@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const Payment = require("../models/Payment");
 const Project = require("../models/Project");
 const asyncHandler = require("../middleware/asyncHandler");
+const { markPaid } = require("../utils/paymentUnlock");
 
 // Cashfree signs webhooks as base64(HMAC-SHA256(timestamp + rawBody, clientSecret)),
 // sent in the `x-webhook-signature` header alongside `x-webhook-timestamp`.
@@ -41,16 +42,8 @@ exports.cashfreeWebhook = async (req, res) => {
 
       const payment = await Payment.findOne({ cashfreeOrderId: orderId });
 
-      // Idempotency: a replayed webhook for an already-completed payment is a no-op.
-      if (payment && payment.status === "pending") {
-        payment.status = "completed";
-        payment.cashfreePaymentId = paymentId;
-        await payment.save();
-
-        await Project.findByIdAndUpdate(payment.projectId, {
-          $addToSet: { unlockedBy: payment.engineerId },
-        });
-      }
+      // markPaid is idempotent — a replayed webhook is a no-op.
+      await markPaid(payment, paymentId);
     }
 
     res.status(200).send("OK");

@@ -1,6 +1,8 @@
 const Project = require("../models/Project");
 const Payment = require("../models/Payment");
 const asyncHandler = require("../middleware/asyncHandler");
+const { reconcilePendingPayment } = require("../utils/paymentUnlock");
+const { UNLOCK_AMOUNT_RUPEES } = require("../config/pricing");
 
 exports.createProject = asyncHandler(async (req, res) => {
 
@@ -147,20 +149,34 @@ exports.getProjectContact = asyncHandler(async (req, res) => {
   }
 
   // Contact is unlocked ONLY when a completed payment exists for this
-  // engineer + project. We intentionally check the Payment record (the
-  // authoritative source) rather than project.unlockedBy — the latter is
-  // an ObjectId array that never matches the JWT's string id via
-  // Array.includes(), and accepting a bid must NOT unlock contact on its own.
-  const paid = await Payment.exists({
+  // engineer + project. We check the Payment record (the authoritative
+  // source) rather than project.unlockedBy, and accepting a bid must NOT
+  // unlock contact on its own.
+  let paid = await Payment.exists({
     projectId,
     engineerId: req.user.id,
     status: "completed",
   });
 
+  // Fallback for a missed/failed webhook: if there's still a pending payment,
+  // ask Cashfree directly whether the order was actually paid, and unlock if
+  // so. This means contact unlocks even when the webhook never arrives.
+  if (!paid) {
+    const pending = await Payment.findOne({
+      projectId,
+      engineerId: req.user.id,
+      status: "pending",
+    });
+
+    if (pending) {
+      paid = await reconcilePendingPayment(pending);
+    }
+  }
+
   if (!paid) {
 
     return res.status(403).json({
-      message: "You must pay ₹2500 to access contact details"
+      message: `You must pay ₹${UNLOCK_AMOUNT_RUPEES} to access contact details`
     });
 
   }

@@ -3,8 +3,7 @@ const Payment = require("../models/Payment");
 const Project = require("../models/Project");
 const Bid = require("../models/Bid");
 const asyncHandler = require("../middleware/asyncHandler");
-
-const UNLOCK_AMOUNT_RUPEES = 2500;
+const { UNLOCK_AMOUNT_RUPEES } = require("../config/pricing");
 
 // Engineer creates a Cashfree order to unlock contact details.
 // Only allowed for the engineer whose bid was accepted on this project.
