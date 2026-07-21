@@ -11,6 +11,7 @@ const {
 
 const {
   cashfreeWebhook,
+  paymentReturn,
   getMyUnlockedProjects,
 } = require("../controllers/paymentController");
 
@@ -24,6 +25,9 @@ router.post(
 
 // Cashfree server-to-server webhook (verified by HMAC signature)
 router.post("/webhook", cashfreeWebhook);
+
+// Post-payment browser redirect target — confirms payment and bounces to the app
+router.get("/return", paymentReturn);
 
 // Engineer's own unlocked (paid-for) projects
 router.get(

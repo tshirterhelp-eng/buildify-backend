@@ -2,7 +2,7 @@ const crypto = require("crypto");
 const Payment = require("../models/Payment");
 const Project = require("../models/Project");
 const asyncHandler = require("../middleware/asyncHandler");
-const { markPaid } = require("../utils/paymentUnlock");
+const { markPaid, reconcilePendingPayment } = require("../utils/paymentUnlock");
 
 // Cashfree signs webhooks as base64(HMAC-SHA256(timestamp + rawBody, clientSecret)),
 // sent in the `x-webhook-signature` header alongside `x-webhook-timestamp`.
@@ -53,6 +53,60 @@ exports.cashfreeWebhook = async (req, res) => {
     res.status(500).send("Error");
   }
 };
+
+// Landing page Cashfree redirects the browser to after payment. It confirms
+// the payment server-side (so the contact is already unlocked by the time the
+// app reopens), then bounces into the app via the buildify:// deep link. No
+// app change is needed — the app already listens for buildify://payment-success.
+exports.paymentReturn = asyncHandler(async (req, res) => {
+
+  const orderId = req.query.order_id;
+
+  if (orderId) {
+    const payment = await Payment.findOne({ cashfreeOrderId: orderId });
+    // Verify with Cashfree and unlock immediately if paid (webhook may lag).
+    try {
+      await reconcilePendingPayment(payment);
+    } catch (_) {}
+  }
+
+  const deepLink = `buildify://payment-success?order_id=${encodeURIComponent(orderId || "")}`;
+
+  res.set("Content-Type", "text/html");
+  res.status(200).send(`<!DOCTYPE html>
+<html>
+<head>
+  <title>Buildify</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script>
+    // Try to open the app immediately, then again shortly after in case the
+    // first attempt is blocked before the page finishes loading.
+    var target = ${JSON.stringify(deepLink)};
+    function openApp() { window.location.replace(target); }
+    openApp();
+    setTimeout(openApp, 1200);
+  </script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background:#FFFFFF; color:#0F0F0F; display:flex; min-height:100vh; align-items:center;
+      justify-content:center; margin:0; text-align:center; }
+    .card { padding:32px; }
+    .brand { color:#19A463; font-weight:800; font-size:22px; }
+    .msg { color:#6B7280; margin-top:8px; font-size:14px; }
+    .btn { display:inline-block; margin-top:20px; padding:14px 22px; background:#1DBF73;
+      color:#fff; font-weight:700; text-decoration:none; border-radius:14px; font-size:15px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">Payment successful</div>
+    <p class="msg">Returning you to Buildify&hellip;</p>
+    <a class="btn" href="${deepLink}">Open Buildify</a>
+  </div>
+</body>
+</html>`);
+
+});
 
 exports.getMyUnlockedProjects = asyncHandler(async (req, res) => {
 

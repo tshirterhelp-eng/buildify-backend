@@ -66,6 +66,13 @@ exports.createOrder = asyncHandler(async (req, res) => {
 
   const orderId = "BUILDIFY_" + Date.now();
 
+  // Public base URL. Prefer PUBLIC_BASE_URL; otherwise derive from the request,
+  // forcing https for the deployed host (Render sits behind an https proxy, so
+  // req.protocol can be "http"). Cashfree requires a reachable https return_url.
+  const host = req.get("host");
+  const derivedProto = host && host.includes("localhost") ? req.protocol : "https";
+  const baseUrl = process.env.PUBLIC_BASE_URL || `${derivedProto}://${host}`;
+
   const request = {
     order_amount: UNLOCK_AMOUNT_RUPEES,
     order_currency: "INR",
@@ -77,9 +84,11 @@ exports.createOrder = asyncHandler(async (req, res) => {
     },
 
     order_meta: {
-      // Custom app URL scheme (registered in AndroidManifest.xml / iOS
-      // Info.plist) so Cashfree's hosted checkout returns straight into the app.
-      return_url: "buildify://payment-success?order_id={order_id}",
+      // After payment, Cashfree redirects the browser here. This backend page
+      // confirms the payment server-side and then bounces into the app via the
+      // registered buildify:// deep link — a custom scheme can't be used as a
+      // Cashfree return_url directly.
+      return_url: `${baseUrl}/api/payments/return?order_id={order_id}`,
     },
   };
 
@@ -123,7 +132,7 @@ exports.createOrder = asyncHandler(async (req, res) => {
     paymentSessionId: response.data.payment_session_id,
     orderId,
     checkoutUrl:
-      `${req.protocol}://${req.get("host")}/checkout.html` +
+      `${baseUrl}/checkout.html` +
       `?session_id=${response.data.payment_session_id}&mode=${mode}`,
   });
 
